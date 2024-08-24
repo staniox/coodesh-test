@@ -10,6 +10,7 @@
         "darkaonline/l5-swagger": "^8.6",
         "laravel/framework": "^11.9",
         "laravel/tinker": "^2.9",
+        "laravel/ui": "^4.5",
         "madnest/madzipper": "^1.5",
         "mongodb/laravel-mongodb": "^4.7"
     },

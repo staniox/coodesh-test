@@ -13,11 +13,19 @@ class ProductTest extends TestCase
 
     public function test_product_creation()
     {
-        $product = Product::factory()->create();
+        $product = Product::factory()->create([
+            'code' => '123456789',
+            'status' => 'draft',
+            'imported_t' => now(),
+        ]);
+
         $this->assertDatabaseHas('products', [
-            '_id' => new ObjectId($product->_id)
+            'code' => '123456789',
+            'status' => 'draft',
+            'imported_t' => $product->imported_t,
         ]);
     }
+
 
     public function test_product_fillable_attributes()
     {

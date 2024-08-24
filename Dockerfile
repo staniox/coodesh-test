@@ -33,11 +33,12 @@ RUN php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" \
 
 COPY . .
 
-RUN chown -R www-data:www-data /var/www \
-    && chmod -R 755 /var/www
+#RUN chown -R www-data:www-data /var/www \
+#    && chmod -R 755 /var/www \
+#    && chmod 777 /var/www/storage/app/public -R \
+#    && chmod 777 /var/www/storage/logs/public -R
 
-RUN composer install --optimize-autoloader
-RUN RUN php artisan key:generate
+RUN composer install --no-interaction
 
 EXPOSE 9000
 

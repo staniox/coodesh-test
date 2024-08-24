@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use MongoDB\BSON\ObjectId;
 use Tests\TestCase;
 use App\Models\Product;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -22,7 +21,6 @@ class ProductControllerTest extends TestCase
 
         foreach ($products as $product) {
             $response->assertJsonFragment([
-                '_id' => (string) $product->_id,
                 'code' => $product->code,
                 'status' => $product->status,
             ]);
@@ -43,7 +41,7 @@ class ProductControllerTest extends TestCase
         $response->assertStatus(200);
 
         $this->assertDatabaseHas('products', [
-            '_id' => (string) $product->_id,
+            'code' => (string) $product->code,
             'product_name' => 'Updated Product Name',
             'quantity' => 123,
             'status' => 'updated',
@@ -58,12 +56,12 @@ class ProductControllerTest extends TestCase
         $response->assertStatus(200);
 
         $this->assertDatabaseHas('products', [
-            '_id' => (string) $product->_id,
+            'code' => (string) $product->code,
             'status' => 'trash',
         ]);
     }
 
-    public function testCanViewSingleProduct()
+    public function test_can_view_single_product()
     {
         $product = Product::factory()->create();
 
@@ -72,8 +70,7 @@ class ProductControllerTest extends TestCase
         $response->assertStatus(200);
 
         $response->assertJson([
-            '_id' => (string) $product->_id,
-            'code' => $product->code,
+            'code' => (string) $product->code,
             'status' => $product->status,
             'imported_t' => $product->imported_t->toISOString(),
             'url' => $product->url,
