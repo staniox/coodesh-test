@@ -98,6 +98,8 @@ class ProductImportService
                         'imported_at' => now(),
                         'status' => 'success',
                         'imported_products' => $productCount,
+                        'memory' => memory_get_usage(true),
+                        'peak_memory' => memory_get_peak_usage(true),
                     ]);
                 } else {
                     Log::error("Arquivo não é um arquivo GZIP: $fileUrl");
@@ -111,6 +113,8 @@ class ProductImportService
                     'imported_at' => now(),
                     'status' => 'error',
                     'imported_products' => $productCount ?? null,
+                    'memory' => memory_get_usage(true),
+                    'peak_memory' => memory_get_peak_usage(true),
                 ]);
                 throw $e;
             }

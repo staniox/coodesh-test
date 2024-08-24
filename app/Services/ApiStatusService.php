@@ -7,6 +7,12 @@ use Illuminate\Support\Facades\DB;
 
 class ApiStatusService
 {
+    private $lastImport;
+    public function __construct()
+    {
+        $this->lastImport = ImportHistory::orderBy('imported_at', 'desc')->first();
+    }
+
     public function checkDatabaseConnection()
     {
         try {
@@ -19,8 +25,8 @@ class ApiStatusService
 
     public function getLastCronRun()
     {
-        $lastImport = ImportHistory::orderBy('imported_at', 'desc')->first();
-        return $lastImport ? $lastImport->imported_at->toDateTimeString() : 'Ainda não executado';
+
+        return $this->lastImport ? $this->lastImport->imported_at->toDateTimeString() : 'Ainda nao executado';
     }
 
     public function getServerUptime()
@@ -30,10 +36,23 @@ class ApiStatusService
 
     public function getMemoryUsage()
     {
-        $unit=['b','kb','mb','gb'];
-        $size = memory_get_usage(true);
-        return @round($size/pow(1024,($i=floor(log($size,1024)))),2).' '.$unit[$i];
+        $memory = $this->lastImport ? $this->lastImport->memory : 0;
+        return $this->convertB($memory);
     }
+    public function getMemoryPeakUsage()
+    {
+        $memory = $this->lastImport ? $this->lastImport->peak_memory : 0;
+        return $this->convertB($memory);
+    }
+    public function convertB(int $value)
+    {
+        if ($value == 0) {
+            return 'Ainda nao executado';
+        }
+        $unit=['b','kb','mb','gb'];
+        return @round($value/pow(1024,($i=floor(log($value,1024)))),2).' '.$unit[$i];
+    }
+
 
     public function getApiStatus()
     {
@@ -43,6 +62,7 @@ class ApiStatusService
             'last_cron_run' => $this->getLastCronRun(),
             'uptime' => $this->getServerUptime(),
             'memory_usage' => $this->getMemoryUsage(),
+            'memory_peak_usage' => $this->getMemoryPeakUsage(),
         ];
     }
 }
