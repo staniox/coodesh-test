@@ -1,89 +1,71 @@
-# Backend Challenge 20230105
+# Documentação do Processo de Desenvolvimento
 
 ## Introdução
 
-Nesse desafio trabalharemos no desenvolvimento de uma REST API para utilizar os dados do projeto Open Food Facts, que é um banco de dados aberto com informação nutricional de diversos produtos alimentícios.
+Este documento detalha o processo de desenvolvimento e as decisões tomadas para a realização da atividade de importação de produtos a partir de arquivos JSON. São abordadas as etapas de investigação, as hipóteses consideradas, as soluções implementadas e os resultados obtidos.
 
-O projeto tem como objetivo dar suporte a equipe de nutricionistas da empresa Fitness Foods LC para que eles possam revisar de maneira rápida a informação nutricional dos alimentos que os usuários publicam pela aplicação móvel.
+## Objetivo
 
-### Antes de começar
- 
-- O projeto deve utilizar a Linguagem específica na avaliação. Por exempo: Python, R, Scala e entre outras;
-- Considere como deadline da avaliação a partir do início do teste. Caso tenha sido convidado a realizar o teste e não seja possível concluir dentro deste período, avise a pessoa que o convidou para receber instruções sobre o que fazer.
-- Documentar todo o processo de investigação para o desenvolvimento da atividade (README.md no seu repositório); os resultados destas tarefas são tão importantes do que o seu processo de pensamento e decisões à medida que as completa, por isso tente documentar e apresentar os seus hipóteses e decisões na medida do possível.
+O objetivo deste projeto foi desenvolver uma funcionalidade que importasse produtos a partir de arquivos JSON disponibilizados por uma URL externa. A importação deveria ser feita de forma eficiente, garantindo que produtos duplicados não fossem importados e que os dados fossem persistidos corretamente em um banco de dados MongoDB.
 
-## O projeto
- 
-- Criar um banco de dados MongoDB usando Atlas: https://www.mongodb.com/cloud/atlas ou algum Banco de Dados SQL se não sentir confortável com NoSQL;
-- Criar uma REST API com as melhores práticas de desenvolvimento, Design Patterns, SOLID e DDD.
-- Integrar a API com o banco de dados criado para persistir os dados
-- Recomendável usar Drivers oficiais para integração com o DB
-- Desenvolver Testes Unitários
+## Hipóteses e Decisões Iniciais
 
-### Modelo de Dados:
+### Estruturação do Processo de Importação
 
-Para a definição do modelo, consultar o arquivo [products.json](./products.json) que foi exportado do Open Food Facts, um detalhe importante é que temos dois campos personalizados para poder fazer o controle interno do sistema e que deverão ser aplicados em todos os alimentos no momento da importação, os campos são:
+- **Hipótese**: A importação poderia ser feita em lotes de 100 produtos por vez, para otimizar o desempenho.
+- - **Decisão**: A importação foi implementada em lotes de 100 produtos por vez, conforme descrito nos requisitos do teste, que indicavam que apenas 100 produtos seriam importados por execução e o restante ficaria para a próxima execução da cron.
 
-- `imported_t`: campo do tipo Date com a dia e hora que foi importado;
-- `status`: campo do tipo Enum com os possíveis valores draft, trash e published;
+### Persistência dos Dados
 
-### Sistema do CRON
+- **Hipótese**: Um modelo de histórico de importação seria necessário para rastrear quais arquivos foram importados e evitar duplicações.
+- **Decisão**: Criei o modelo `ImportHistory` para armazenar informações sobre cada arquivo importado, incluindo a data e o status da importação.
 
-Para prosseguir com o desafio, precisaremos criar na API um sistema de atualização que vai importar os dados para a Base de Dados com a versão mais recente do [Open Food Facts](https://br.openfoodfacts.org/data) uma vez ao día. Adicionar aos arquivos de configuração o melhor horário para executar a importação.
+### Manuseio de Caracteres Especiais
 
-A lista de arquivos do Open Food, pode ser encontrada em: 
+- **Hipótese**: Os códigos de produtos poderiam conter caracteres especiais que precisariam ser filtrados.
+- **Decisão**: Implementei uma função para remover caracteres não numéricos dos códigos de produtos, garantindo que apenas os números fossem armazenados.
 
-- https://challenges.coode.sh/food/data/json/index.txt
-- https://challenges.coode.sh/food/data/json/data-fields.txt
+## Implementação
 
-Onde cada linha representa um arquivo que está disponível em https://challenges.coode.sh/food/data/json/{filename}.
+### Estruturação do Código
 
-É recomendável utilizar uma Collection secundária para controlar os históricos das importações e facilitar a validação durante a execução.
+- **ProductImportService**: Serviço responsável por gerenciar todo o processo de importação, desde o download dos arquivos até a inserção dos produtos no banco de dados.
+- **ProductService**: Serviço responsável por gerenciar a lógica de negócios relacionada aos produtos, como a verificação de duplicatas e a inserção dos produtos no banco de dados.
+- **ApiStatusService**: Serviço responsável por gerenciar o status da importação e garantir que o progresso seja registrado corretamente. Inclui funcionalidades para verificar e atualizar o status da importação.
 
-Ter em conta que:
+### Importação Incremental
 
-- Todos os produtos deverão ter os campos personalizados `imported_t` e `status`.
-- Limitar a importação a somente 100 produtos de cada arquivo.
+Para garantir que produtos já importados não fossem processados novamente, implementei um mecanismo de controle de duplicatas com base no campo `code` de cada produto. A lógica foi a seguinte:
 
-### A REST API
+- Antes de inserir um novo produto, verifiquei se já existia um registro com o mesmo `code`.
+- Se o `code` já existisse, o produto não foi importado novamente.
+- Registrei o progresso da importação no modelo `ImportHistory`, incluindo o nome do arquivo, a data de importação e o status.
 
-Na REST API teremos um CRUD com os seguintes endpoints:
+### Tratamento de Erros
 
- - `GET /`: Detalhes da API, se conexão leitura e escritura com a base de dados está OK, horário da última vez que o CRON foi executado, tempo online e uso de memória.
- - `PUT /products/:code`: Será responsável por receber atualizações do Projeto Web
- - `DELETE /products/:code`: Mudar o status do produto para `trash`
- - `GET /products/:code`: Obter a informação somente de um produto da base de dados
- - `GET /products`: Listar todos os produtos da base de dados, adicionar sistema de paginação para não sobrecarregar o `REQUEST`.
+Durante o desenvolvimento, identifiquei a necessidade de tratar possíveis erros durante a importação, como falhas na leitura de arquivos ou JSONs malformados. Para isso, implementei as seguintes medidas:
 
-## Extras
+- **Logging de Erros**: Todos os erros foram registrados em logs para facilitar o diagnóstico de problemas.
+- **Validação de JSON**: Implementei uma validação do JSON para garantir que apenas produtos válidos fossem processados.
 
-- **Diferencial 1** Configuração de um endpoint de busca com Elastic Search ou similares;
-- **Diferencial 2** Configurar Docker no Projeto para facilitar o Deploy da equipe de DevOps;
-- **Diferencial 3** Configurar um sistema de alerta se tem algum falho durante o Sync dos produtos;
-- **Diferencial 4** Descrever a documentação da API utilizando o conceito de Open API 3.0;
-- **Diferencial 5** Escrever Unit Tests para os endpoints  GET e PUT do CRUD;
-- **Diferencial 6** Escrever um esquema de segurança utilizando `API KEY` nos endpoints. Ref: https://learning.postman.com/docs/sending-requests/authorization/#api-key
+### Documentação da API
 
+Para documentar e testar a API, usei OpenAPI (anteriormente Swagger). A documentação inclui:
 
+- **Endpoints**: Listagem dos endpoints disponíveis, como `/import` para iniciar uma importação e `/status` para verificar o status da importação.
+- **Métodos HTTP**: Descrição dos métodos suportados para cada endpoint, como GET, POST, PUT, DELETE.
+- **Parâmetros**: Detalhes sobre os parâmetros aceitos pelos endpoints, incluindo cabeçalhos, parâmetros de consulta e corpo da requisição.
+- **Respostas**: Estrutura das respostas da API, incluindo códigos de status HTTP e exemplos de payloads de resposta.
+- **Exemplos**: Exemplos de chamadas de API e respostas esperadas para facilitar o entendimento e o uso da API.
 
-## Readme do Repositório
+## Resultados
 
-- Deve conter o título do projeto
-- Uma descrição sobre o projeto em frase
-- Deve conter uma lista com linguagem, framework e/ou tecnologias usadas
-- Como instalar e usar o projeto (instruções)
-- Não esqueça o [.gitignore](https://www.toptal.com/developers/gitignore)
-- Se está usando github pessoal, referencie que é um challenge by coodesh:  
+A solução desenvolvida permitiu a importação eficiente de produtos a partir de arquivos JSON, garantindo que dados duplicados não fossem processados. O processo foi otimizado para lidar com grandes volumes de dados e pode ser facilmente escalado para lidar com novas importações sem a necessidade de duplicar registros.
 
->  This is a challenge by [Coodesh](https://coodesh.com/)
+## Ponto de Melhoria
 
-## Finalização e Instruções para a Apresentação
+Implementação de um sistema de importação incremental que poderia continuar de onde parou caso uma importação anterior tivesse sido interrompida.
 
-1. Adicione o link do repositório com a sua solução no teste
-2. Adicione o link da apresentação do seu projeto no README.md.
-3. Verifique se o Readme está bom e faça o commit final em seu repositório;
-4. Envie e aguarde as instruções para seguir. Sucesso e boa sorte. =)
+## Conclusão
 
-## Suporte
-
-Use a [nossa comunidade](https://discord.gg/rdXbEvjsWu) para tirar dúvidas sobre o processo ou envie uma mensagem diretamente a um especialista no chat da plataforma. 
+Este projeto foi uma oportunidade de explorar e implementar técnicas de importação de dados em um ambiente de produção. Documentar cada passo do processo foi essencial para garantir que as decisões tomadas fossem bem fundamentadas e que o código final fosse de alta qualidade.

@@ -1,0 +1,148 @@
+openapi: 3.0.0
+info:
+  title: Coodesh - TruckPag API
+  description: API for managing products
+  version: 1.0.0
+paths:
+  /products:
+    get:
+      summary: Get list of products
+      tags:
+        - Products
+      responses:
+        '200':
+          description: List of products
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+  /products/{code}:
+    parameters:
+      - name: code
+        in: path
+        required: true
+        description: Product Code
+        schema:
+          type: string
+    get:
+      summary: Get a single product
+      tags:
+        - Products
+      responses:
+        '200':
+          description: Product details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '404':
+          description: Product not found
+    put:
+      summary: Update a product
+      tags:
+        - Products
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Product'
+      responses:
+        '200':
+          description: Product updated
+        '404':
+          description: Product not found
+    delete:
+      summary: Delete a product
+      tags:
+        - Products
+      responses:
+        '204':
+          description: Product deleted
+        '404':
+          description: Product not found
+  /:
+    get:
+      summary: Get API information
+      tags:
+        - API Info
+      responses:
+        '200':
+          description: API information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  info:
+                    type: string
+                    description: Information about the API
+components:
+  schemas:
+    Product:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Product code
+        status:
+          type: string
+          description: Product status
+        imported_t:
+          type: string
+          format: date-time
+          description: Import timestamp
+        url:
+          type: string
+          description: Product URL
+        product_name:
+          type: string
+          description: Product name
+        quantity:
+          type: string
+          description: Quantity
+        brands:
+          type: string
+          description: Brands
+        categories:
+          type: string
+          description: Categories
+        labels:
+          type: string
+          description: Labels
+        cities:
+          type: string
+          description: Cities
+        purchase_places:
+          type: string
+          description: Purchase places
+        stores:
+          type: string
+          description: Stores
+        ingredients_text:
+          type: string
+          description: Ingredients text
+        traces:
+          type: string
+          description: Traces
+        serving_size:
+          type: string
+          description: Serving size
+        serving_quantity:
+          type: number
+          format: float
+          description: Serving quantity
+        nutriscore_score:
+          type: integer
+          description: Nutriscore score
+        nutriscore_grade:
+          type: string
+          description: Nutriscore grade
+        main_category:
+          type: string
+          description: Main category
+        image_url:
+          type: string
+          description: Image URL
