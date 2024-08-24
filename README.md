@@ -1,71 +1,143 @@
-# Documentação do Processo de Desenvolvimento
+# Backend Challenge 20230105
 
-## Introdução
+## Descrição
 
-Este documento detalha o processo de desenvolvimento e as decisões tomadas para a realização da atividade de importação de produtos a partir de arquivos JSON. São abordadas as etapas de investigação, as hipóteses consideradas, as soluções implementadas e os resultados obtidos.
+Este projeto é uma API REST desenvolvida para consumir e processar os dados do Open Food Facts, permitindo que nutricionistas da empresa Fitness Foods LC revisem rapidamente as informações nutricionais dos alimentos.
 
-## Objetivo
+## Tecnologias Utilizadas
 
-O objetivo deste projeto foi desenvolver uma funcionalidade que importasse produtos a partir de arquivos JSON disponibilizados por uma URL externa. A importação deveria ser feita de forma eficiente, garantindo que produtos duplicados não fossem importados e que os dados fossem persistidos corretamente em um banco de dados MongoDB.
+- **Linguagem:** PHP 8.2
+- **Framework:** Laravel 11
+- **Banco de Dados:** MongoDB
+- **Outras Tecnologias:** Docker, Docker Compose
 
-## Hipóteses e Decisões Iniciais
+## Documentação do Processo de Desenvolvimento
 
-### Estruturação do Processo de Importação
+Para mais detalhes sobre o processo de desenvolvimento e detalhes da documentação da API, consulte a [Documentação do Processo de Desenvolvimento](PROCESSODEV.md).
 
-- **Hipótese**: A importação poderia ser feita em lotes de 100 produtos por vez, para otimizar o desempenho.
-- - **Decisão**: A importação foi implementada em lotes de 100 produtos por vez, conforme descrito nos requisitos do teste, que indicavam que apenas 100 produtos seriam importados por execução e o restante ficaria para a próxima execução da cron.
 
-### Persistência dos Dados
+## Como Instalar e Usar o Projeto
 
-- **Hipótese**: Um modelo de histórico de importação seria necessário para rastrear quais arquivos foram importados e evitar duplicações.
-- **Decisão**: Criei o modelo `ImportHistory` para armazenar informações sobre cada arquivo importado, incluindo a data e o status da importação.
+### Passos para Instalação
 
-### Manuseio de Caracteres Especiais
+1. Clone o repositório do projeto
 
-- **Hipótese**: Os códigos de produtos poderiam conter caracteres especiais que precisariam ser filtrados.
-- **Decisão**: Implementei uma função para remover caracteres não numéricos dos códigos de produtos, garantindo que apenas os números fossem armazenados.
+Este passo cria uma cópia local do repositório GitHub, que contém todo o código e arquivos necessários para o projeto.
 
-## Implementação
+```bash
+ git clone https://github.com/staniox/coodesh-test
+```
+2. Acesse o diretório do projeto
 
-### Estruturação do Código
+Navegue até o diretório do projeto que você acabou de clonar para executar os 
+Comandos seguintes.
 
-- **ProductImportService**: Serviço responsável por gerenciar todo o processo de importação, desde o download dos arquivos até a inserção dos produtos no banco de dados.
-- **ProductService**: Serviço responsável por gerenciar a lógica de negócios relacionada aos produtos, como a verificação de duplicatas e a inserção dos produtos no banco de dados.
-- **ApiStatusService**: Serviço responsável por gerenciar o status da importação e garantir que o progresso seja registrado corretamente. Inclui funcionalidades para verificar e atualizar o status da importação.
+```bash
+ cd coodesh-test
+ ```
+3. Copie o arquivo de exemplo .env para criar um arquivo de configuração real
 
-### Importação Incremental
+O arquivo .env é usado para configurar as variáveis de ambiente da aplicação, como conexões de banco de dados e outras configurações sensíveis.
 
-Para garantir que produtos já importados não fossem processados novamente, implementei um mecanismo de controle de duplicatas com base no campo `code` de cada produto. A lógica foi a seguinte:
+```bash
+ cp .env.example .env
+```
+4. Construa as imagens Docker
 
-- Antes de inserir um novo produto, verifiquei se já existia um registro com o mesmo `code`.
-- Se o `code` já existisse, o produto não foi importado novamente.
-- Registrei o progresso da importação no modelo `ImportHistory`, incluindo o nome do arquivo, a data de importação e o status.
+Esse 
+Comando constrói as imagens Docker definidas no arquivo docker-compose.yml, preparando o ambiente para execução.
 
-### Tratamento de Erros
+```bash
+ docker-compose build
+ ```
+5. Inicie os containers em segundo plano
 
-Durante o desenvolvimento, identifiquei a necessidade de tratar possíveis erros durante a importação, como falhas na leitura de arquivos ou JSONs malformados. Para isso, implementei as seguintes medidas:
+Esse 
+Comando inicia os containers Docker necessários para rodar a aplicação, como o servidor da aplicação e o banco de dados MongoDB.
 
-- **Logging de Erros**: Todos os erros foram registrados em logs para facilitar o diagnóstico de problemas.
-- **Validação de JSON**: Implementei uma validação do JSON para garantir que apenas produtos válidos fossem processados.
+```bash
+ docker-compose up -d
+ ```
+6. Execute as migrações e seeders do banco de dados
 
-### Documentação da API
+Isso cria as tabelas no banco de dados e preenche com dados iniciais necessários para a aplicação funcionar corretamente.
 
-Para documentar e testar a API, usei OpenAPI (anteriormente Swagger). A documentação inclui:
+```bash
+ docker-compose exec app php artisan migrate --seed -q
+ ```
+7. Gere uma chave de aplicação do Laravel
 
-- **Endpoints**: Listagem dos endpoints disponíveis, como `/import` para iniciar uma importação e `/status` para verificar o status da importação.
-- **Métodos HTTP**: Descrição dos métodos suportados para cada endpoint, como GET, POST, PUT, DELETE.
-- **Parâmetros**: Detalhes sobre os parâmetros aceitos pelos endpoints, incluindo cabeçalhos, parâmetros de consulta e corpo da requisição.
-- **Respostas**: Estrutura das respostas da API, incluindo códigos de status HTTP e exemplos de payloads de resposta.
-- **Exemplos**: Exemplos de chamadas de API e respostas esperadas para facilitar o entendimento e o uso da API.
+A chave de aplicação é utilizada para criptografia de dados, e este 
+Comando a gera e armazena no arquivo .env.
 
-## Resultados
+```bash
+ docker-compose exec app php artisan key:generate
+ ```
+8. Ajuste as permissões do diretório da aplicação
 
-A solução desenvolvida permitiu a importação eficiente de produtos a partir de arquivos JSON, garantindo que dados duplicados não fossem processados. O processo foi otimizado para lidar com grandes volumes de dados e pode ser facilmente escalado para lidar com novas importações sem a necessidade de duplicar registros.
+Modifica as permissões do diretório /var/www dentro do container para garantir que o servidor web tenha acesso apropriado.
 
-## Ponto de Melhoria
+```bash
+ docker-compose exec app chmod -R 755 /var/www
+ ```
+9. Ajuste as permissões do banco de dados SQLite
 
-Implementação de um sistema de importação incremental que poderia continuar de onde parou caso uma importação anterior tivesse sido interrompida.
+Isso garante que o arquivo do banco de dados SQLite tenha permissões de leitura, escrita e execução para todos os usuários.
 
-## Conclusão
+```bash
+ docker-compose exec app chmod -R 777 /var/www/database/database.sqlite
+ ```
+10. Modifique as permissões do diretório `/var/www` dentro do container para garantir que o servidor web tenha acesso apropriado:
 
-Este projeto foi uma oportunidade de explorar e implementar técnicas de importação de dados em um ambiente de produção. Documentar cada passo do processo foi essencial para garantir que as decisões tomadas fossem bem fundamentadas e que o código final fosse de alta qualidade.
+   ```bash
+   docker-compose exec app chmod -R 755 /var/www
+   ```
+11. Execute os testes automatizados
+
+Executa os testes unitários da aplicação para validar que as funcionalidades estão funcionando corretamente.
+
+```bash
+ docker-compose exec app php artisan test
+ ```
+12. Inicialize a réplica set do MongoDB
+
+Configura o MongoDB com uma réplica set utilizando um script customizado, necessário para o funcionamento da aplicação.
+
+```bash
+ docker exec -it mongo mongosh docker-entrypoint-initdb.d/init-replica-set.js
+ ```
+13. Importe os produtos do Open Food Facts
+
+Executa o 
+Comando Artisan que importa manualmente os produtos para o banco de dados, útil se você quiser realizar a importação antes que o cron job automático ocorra.
+
+```bash
+ docker-compose exec app php artisan products:import
+```
+
+### Endpoints da API
+
+- **`GET /`**: Retorna o status atual da API.
+- **`GET /test_mongo`**: Testa a conexão com o banco de dados MongoDB.
+- **`GET /products`**: Lista todos os produtos.
+- **`GET /products/{code}`**: Retorna um produto específico pelo código.
+- **`PUT /products/{code}`**: Atualiza um produto específico pelo código.
+- **`DELETE /products/{code}`**: Remove um produto específico pelo código.
+- **`GET /api/documentation`**: Acessa a documentação da API gerada pelo Swagger/OpenAPI.
+
+
+## Variáveis de Ambiente
+
+A aplicação utiliza algumas variáveis de ambiente para configurar o ambiente de execução. Abaixo estão as variáveis e suas funções:
+
+- **`IMPORT_TIME`**: Define a hora em que a importação dos produtos do Open Food Facts deve ser realizada. O formato é `HH:MM` (por exemplo, `12:00` para executar a importação ao meio-dia).
+
+- **`MONGO_URI`**: Define a URL de conexão com o banco de dados MongoDB. No ambiente Docker, o valor padrão é `mongodb://mongo:27017`, que aponta para o container MongoDB.
+
+- **`MONGO_DATABASE`**: Define o nome do banco de dados MongoDB a ser utilizado. O valor padrão é `coodesh` e não é necessário alterar se você estiver usando a configuração padrão.
+
+
+## Referência
+
+This is a challenge by Coodesh
+
